@@ -1,9 +1,21 @@
-import Main from"./Components/Main.jsx";
+import Main from"./pages/Main.jsx";
+import Login from"./pages/Login.jsx";
+import { BrowserRouter as Router, Switch, Route } from "react-router-dom";
 
 function App() {
   return (
     <div className="App">
-      <Main/>
+      
+      <Router>
+        <Switch>
+          <Route path="/login">
+            <Login />
+          </Route>
+          <Route path="/" exact>
+            <Main/>
+          </Route>
+        </Switch>
+      </Router>
     </div>
   );
 }
