@@ -1,29 +1,33 @@
-const express = require('express')
+import express from 'express';
 const app = express()
 const port = 5000
 console.log("Starting up");
 
+// __dirname is missing from modules, create it manually
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
+const __dirname = dirname(fileURLToPath(import.meta.url));
+console.log("Running from "+__dirname)
+
 // Define default parsing
-app.use(express.json()) // Parse any application/json requests into req.body
-app.use(express.urlencoded({ extended: true })) // Parse any application/x-www-form-urlencoded requests into req.body
-app.use(express.static(__dirname + 'static')); // Static files in the ./static folder
-app.use(require('express-session')({ secret: '0823hyiorum', resave: false, saveUninitialized: false })); // Session handler
+app.use(express.json()) // Parse application/json data into req.body
+app.use(express.urlencoded({ extended: true })) // Parse form data into req.body
+app.use('/static', express.static(join(__dirname, 'static'))); // Static files
+import expressSession from 'express-session';
+app.use(expressSession({ secret: "a secret", resave: false, saveUninitialized: false })); // Session handler
 console.log("Parsers set");
 
 // Passport.js setup
-let passport = require('passport');
-let LocalStrategy = require('passport-local').Strategy;
+// Logins will remain valid for the current session (until user closes their browser)
+import passport from 'passport';
+import { Strategy as LocalStrategy } from 'passport-local';
 app.use(passport.initialize());
-app.use(passport.authenticate('session')); // Logins will remain valid for the current session (until user closes their browser) 
-console.log("Passport set");
-
-// File, folder, path setup
-const path = require('path');
+app.use(passport.authenticate('session')); 
 
 // SQLite setup
-const sqlite3 = require('sqlite3');
+import Database from 'better-sqlite3';
 const dbFilename = "mydatabase.db";
-const db = new sqlite3.Database(__dirname + "/" + dbFilename);
+const db = new Database(join(__dirname, dbFilename));
 
 passport.serializeUser(function (user, done) {
   // Convert user object to user id for saving into session cookie
@@ -31,14 +35,12 @@ passport.serializeUser(function (user, done) {
   done(null, user.userid);
 });
 
-passport.deserializeUser(function (userid, done) {
+passport.deserializeUser(function(userid, done) {
   // Convert user id (from session cookie) to user object. Will be attached to req.user
-  console.log("deserialising (retrieving user object)... ");
-  console.dir(userid);
-  db.get("SELECT * FROM users WHERE userid=?", userid, function (err, row) {
-    if (!row) { return done(null, false); }
-    return done(null, row);
-  })
+  const stmt = db.prepare("SELECT * FROM users WHERE userid=?");
+  const row = stmt.get(userid);
+  if (! row) { return done(null, false); }
+  return done(null, row);
 });
 
 // Defines how a user is authenticated
@@ -48,18 +50,21 @@ passport.use(new LocalStrategy(
     usernameField: 'userid',
     passwordField: 'passwd'
   },
+
   // Handling function
   function (uid, pwd, done) {
     console.log(`Login request....`);
     console.log(`userid ${uid}`);
-    console.log(`passwd ${pwd}`);
-    db.get("SELECT * FROM users WHERE userid=? AND password=?", [uid, pwd], (err, row) => {
-      console.log("row", row);
-      // If there is no record matching the username/password, abort
-      if (!row) return done(null, false);
-      // If the record exists, return the data for saving into the session
+    console.log(`passwd ${pwd}`); // Probably shouldn't do this for a real project
+    const statement = db.prepare("SELECT * FROM users WHERE userid=? AND password=?");
+    try {
+      const row = statement.get(uid, pwd);
+      console.log(row);
       return done(null, row);
-    });
+    } catch (err) { // Invalid password will throw error
+      console.log(err);
+      return done(null, false);
+    }
   }));
 
 /***********************************************************
@@ -89,21 +94,19 @@ app.get('/api/logout', function (req, res) {
 })
 
 app.get('/api/post/get', function (req, res) {
-  db.all("SELECT * FROM posts", [], (err, rows) => {
-    if (err) {
-      throw err;
-    }
-    res.json(rows)
-  });
+  const stmt = db.prepare("SELECT * FROM posts")
+  const rows = stmt.all()
+  return res.json(rows)
 })
+
 app.post('/api/post/create', function (req, res) {
-  title = req.body.title
-  content = req.body.content
-  userid = req.user.userid
+  let title = req.body.title
+  let content = req.body.content
+  let userid = req.user.userid
   if (title && content && userid) {
-    db.run("INSERT INTO posts (userid, title, content) VALUES (?, ?, ?)", [userid, title, content], (err) => {
-      if (err) console.log(err.message);
-    })
+    const stmt = db.prepare("INSERT INTO posts (userid, title, content) VALUES (?, ?, ?)");
+    const result = stmt.run(userid, title, content)
+    console.log("Records updated: ",result.changes);
   }
 })
 
@@ -113,5 +116,5 @@ app.post('/api/post/create', function (req, res) {
 
 /* Start the server, listen to the specified port number, execute the paramter function when running */
 app.listen(port, () => {
-  console.log(`My sample app listening at http://localhost:${port}`)
+  console.log(`Blog project listening at http://localhost:${port}`)
 })
