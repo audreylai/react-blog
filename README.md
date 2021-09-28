@@ -1,2 +1,2 @@
 # react-blog
- Begginer react project
+ Beginner react project
