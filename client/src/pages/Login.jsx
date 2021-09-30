@@ -15,8 +15,11 @@ export default function Login() {
 
   function handleSubmit(e) {
     console.log(uid, pass);
-    userLogin(uid, pass)
+    userLogin(uid, pass).then(res=>{
+      console.log(res);
+    });
 
+    /*
     setTimeout(() => {
       getUser().then((response) => {
         if (response.data.userid) {
@@ -24,6 +27,7 @@ export default function Login() {
         }
       })
     }, 50);
+    */
   }
 
   return (

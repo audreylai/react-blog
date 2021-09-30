@@ -79,7 +79,9 @@ app.get('/', (req, res) => {
 // Receive login form request from login.html
 // Will execute the passport authentication strategy
 // On success or failure of the login attempt, will redirect as specified...
-app.post('/api/login', passport.authenticate('local'));
+app.post('/api/login', passport.authenticate('local'), function(req, res) {
+  return res.send(req.user);
+});
 
 app.get('/api/user', function (req, res) {
   console.log("/api/user", req.user)
