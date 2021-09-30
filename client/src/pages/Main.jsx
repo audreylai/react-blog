@@ -36,9 +36,16 @@ export default function Main() {
         <input
           type="text"
           name="title"
+          value={title}
+          placeholder="blog title..."
           onChange={(e) => setTitle(e.target.value)}
         />
-        <textarea name="content" onChange={(e) => setContent(e.target.value)} />
+        <textarea 
+          name="content" 
+          value={content} 
+          placeholder="blog post content..."
+          onChange={(e) => setContent(e.target.value)} 
+        />
         <button onClick={handleClick}>create post</button>
         {posts.map((post, index) => {
           return <BlogPost userid={post.userid} title={post.title} content={post.content} />;
