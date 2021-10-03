@@ -17,17 +17,10 @@ export default function Login() {
     console.log(uid, pass);
     userLogin(uid, pass).then(res=>{
       console.log(res);
+      if (res.data.userid) {
+        setLoginStatus(true);
+      }
     });
-
-    /*
-    setTimeout(() => {
-      getUser().then((response) => {
-        if (response.data.userid) {
-          setLoginStatus(true);
-        }
-      })
-    }, 50);
-    */
   }
 
   return (
