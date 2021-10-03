@@ -73,7 +73,7 @@ passport.use(new LocalStrategy(
 
 app.get('/', (req, res) => {
   console.log("Index page");
-  res.send('Welcome to my very exciting website. You probably want to go to /login');
+  return res.send('Welcome to my very exciting website. You probably want to go to /login');
 })
 
 // Receive login form request from login.html
@@ -85,14 +85,15 @@ app.post('/api/login', passport.authenticate('local'), function(req, res) {
 
 app.get('/api/user', function (req, res) {
   console.log("/api/user", req.user)
-  if (!req.user) res.json();
-  res.json(req.user)
+  if (!req.user) return res.json({"status": "not logged in"}); // or should this be a redirect?
+  return res.json(req.user);
 })
 
 app.get('/api/logout', function (req, res) {
   console.log(req.ip)
   console.log('You should now (hopefully) be getting logged out. Ta. Thanks for your visit. Hope your life is now fulfilled.')
   req.logout(); // Passport provided function to end the user session
+  return res.json({"status": "logout successful"}); // or should this be a redirect?
 })
 
 app.get('/api/post/get', function (req, res) {
@@ -106,9 +107,16 @@ app.post('/api/post/create', function (req, res) {
   let content = req.body.content
   let userid = req.user.userid
   if (title && content && userid) {
-    const stmt = db.prepare("INSERT INTO posts (userid, title, content) VALUES (?, ?, ?)");
-    const result = stmt.run(userid, title, content)
-    console.log("Records updated: ",result.changes);
+    try {
+      const stmt = db.prepare("INSERT INTO posts (userid, title, content) VALUES (?, ?, ?)");
+      const result = stmt.run(userid, title, content)
+      console.log("Records updated: ",result.changes);
+      return res.send("post created");  
+    } catch {
+      return res.send("unable to create post - database error");
+    }
+  } else {
+    return res.send("unable to create post - missing fields");
   }
 })
 
